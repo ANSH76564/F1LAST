@@ -13,9 +13,6 @@ from sklearn.metrics import (
     classification_report,
 )
 
-# -------------------------------------------------------------------
-# App setup: use ONE already-merged F1 dataset
-# -------------------------------------------------------------------
 st.set_page_config(page_title="F1 Race Strategy Simulator", page_icon="🏎️", layout="wide")
 st.title("🏎️ F1 Race Strategy Simulator")
 st.caption(
@@ -38,7 +35,6 @@ def load_merged_data(csv_path: str):
 
     df = pd.read_csv(path, na_values=[r"\N"])
 
-    # Normalize common column-name variations from merged F1 datasets.
     aliases = {
         "positionOrder": ["positionOrder", "position_order", "finish_position", "position"],
         "year": ["year", "season"],
@@ -60,7 +56,6 @@ def load_merged_data(csv_path: str):
             if found is not None:
                 df = df.rename(columns={found: standard_name})
 
-    # Some merged files store driver names as separate forename/surname columns.
     if "driver_name" not in df.columns and {"forename", "surname"}.issubset(df.columns):
         df["driver_name"] = (
             df["forename"].fillna("").astype(str) + " " + df["surname"].fillna("").astype(str)
@@ -74,7 +69,6 @@ def load_merged_data(csv_path: str):
             + ". Check that you are using f1_merged_dataset.csv created after merging races, results, drivers, and constructors."
         )
 
-    # IDs are helpful model features; create stable numeric IDs if the merged file lacks them.
     if "driverId" not in df.columns:
         df["driverId"] = pd.factorize(df["driver_name"].astype(str))[0] + 1
     if "constructorId" not in df.columns:
@@ -103,7 +97,6 @@ def load_merged_data(csv_path: str):
     model_df = model_df[model_df["grid"] > 0].copy()
     model_df = model_df.sort_values(["year", "round", "raceId", "positionOrder"]).reset_index(drop=True)
 
-    # Historical features only use earlier races, avoiding use of the current result as an input.
     model_df["driver_previous_finish"] = model_df.groupby("driverId")["positionOrder"].transform(lambda s: s.shift(1))
     model_df["driver_avg_finish_before"] = model_df.groupby("driverId")["positionOrder"].transform(lambda s: s.shift(1).expanding().mean())
     model_df["driver_avg_points_before"] = model_df.groupby("driverId")["points"].transform(lambda s: s.shift(1).expanding().mean())
